@@ -111,6 +111,21 @@ node server/classify.mjs             # 自动分类（可断点续跑）
 2. 加一个 `ingest-xxx.mjs` 入库脚本（映射到 `app` 字段）；
 3. 前端「平台」列表里加一项。
 
+## 🌍 静态预览（GitHub Pages）
+
+把知识库生成纯静态站点，发给别人即可在线浏览（浏览 / 仪表盘 / 图谱 / 标签云 / 回顾 / 导出，只读）：
+
+```bash
+node server/export-static.mjs     # 生成 preview/ 目录
+git switch gh-pages
+git rm -r --cached .
+cp -f preview/* .
+git add index.html app.js style.css data.js manifest.json icon.svg personal-kb.md personal-kb.json
+git commit -m '更新预览' && git push && git switch main
+```
+
+> ⚠️ 预览包含你的收藏列表（标题/摘要/标签），如不想公开全部内容，请勿推送。
+
 ## 📄 License
 
 [MIT](LICENSE)
