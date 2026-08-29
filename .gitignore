@@ -25,5 +25,8 @@ Thumbs.db
 # 静态预览（构建产物，推送到 gh-pages 分支）
 preview/
 
+# gh-pages 发布用临时 worktree
+.gh-pages/
+
 # 本机静默启动包装（含本机路径，不适合提交）
 start-kb.vbs
