@@ -159,7 +159,6 @@ const DATA = {
   categories: { '': getCategories(null), xhs: getCategories('xhs'), zhihu: getCategories('zhihu') },
   tags: { '': getTags(null), xhs: getTags('xhs'), zhihu: getTags('zhihu') },
   graph: getGraph(),
-  builtAt: new Date().toISOString(),
 };
 
 // ---------- fetch 垫片（模拟 /api/*）----------
@@ -330,5 +329,5 @@ writeFileSync(path.join(outDir, 'personal-kb.json'), JSON.stringify({ total: not
 
 const sizeKb = Math.round(dataJson.length / 1024);
 console.log(`✅ 静态预览已生成到 preview/`);
-console.log(`   笔记 ${notes.length} 条 · 数据 ${sizeKb} KB · 生成时间 ${DATA.builtAt}`);
+console.log(`   笔记 ${notes.length} 条 · 数据 ${sizeKb} KB · 生成时间 ${new Date().toISOString()}`);
 console.log(`   推送到 gh-pages 分支后即可访问`);

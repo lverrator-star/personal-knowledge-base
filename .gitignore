@@ -25,6 +25,5 @@ Thumbs.db
 # 静态预览（构建产物，推送到 gh-pages 分支）
 preview/
 
-# 本机启动脚本（含本机路径，不适合提交）
-start-server.bat
+# 本机静默启动包装（含本机路径，不适合提交）
 start-kb.vbs

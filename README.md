@@ -113,7 +113,11 @@ node server/classify.mjs             # 自动分类（可断点续跑）
 
 ## 🌍 静态预览（GitHub Pages）
 
-把知识库生成纯静态站点，发给别人即可在线浏览（浏览 / 仪表盘 / 图谱 / 标签云 / 回顾 / 导出，只读）：
+把知识库生成纯静态站点，发给别人即可在线浏览（浏览 / 仪表盘 / 图谱 / 标签云 / 回顾 / 导出，只读）。
+
+**Windows 一键发布**：双击 `update-preview.bat`，自动完成生成 → 提交 → 推送 → 切回分支（数据没变化会自动跳过）。
+
+手动流程（Mac / Linux）：
 
 ```bash
 node server/export-static.mjs     # 生成 preview/ 目录
