@@ -2,8 +2,15 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>个人知识库</title>
+  <meta name="theme-color" content="#ff2442" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="知识库" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -15,7 +22,14 @@
     <div class="search">
       <input id="search" type="text" placeholder="搜索标题 / 标签 / 作者 / 摘要…" autocomplete="off" />
     </div>
-    <button id="dash-btn" class="dash-btn">📊 仪表盘</button>
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="browse">📄 浏览</button>
+      <button class="tab-btn" data-view="dashboard">📊 仪表盘</button>
+      <button class="tab-btn" data-view="graph">🕸️ 图谱</button>
+      <button class="tab-btn" data-view="review">📖 回顾</button>
+      <button class="tab-btn" data-view="tags">🏷️ 标签</button>
+      <button class="tab-btn" data-view="settings">⚙️ 设置</button>
+    </nav>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -30,8 +44,33 @@
       <div class="widget span-3" id="w-subcats"></div>
       <div class="widget span-3" id="w-authors"></div>
       <div class="widget span-6" id="w-review"></div>
+      <div class="widget span-6" id="w-mobile"></div>
     </div>
   </div>
+
+  <div id="graph-view" class="graph-view" hidden>
+    <div class="graph-toolbar">
+      <span class="graph-hint" id="graph-hint">分类图谱 · 节点大小=数量 · 连线=共享标签 · 拖动节点 · 悬停连线看共享标签 · 点击跳转分类</span>
+      <button class="btn" id="graph-cat-btn" hidden>← 返回分类图谱</button>
+      <span class="graph-spacer"></span>
+      <button class="btn" id="graph-zoom-out" title="缩小">−</button>
+      <button class="btn" id="graph-zoom-in" title="放大">+</button>
+      <button class="btn" id="graph-zoom-reset" title="重置视图">⤢</button>
+    </div>
+    <svg id="graph-svg"></svg>
+  </div>
+
+  <div id="review-view" class="review-view" hidden></div>
+
+  <div id="tags-view" class="tags-view" hidden>
+    <div class="tags-head">
+      <span class="tags-title">🏷️ 标签云</span>
+      <span class="tags-sub">点标签筛选笔记 · 字号越大越常出现</span>
+    </div>
+    <div class="tags-cloud" id="tags-cloud"></div>
+  </div>
+
+  <div id="settings-view" class="settings-view" hidden></div>
 
   <div class="layout" id="layout">
     <aside class="sidebar">

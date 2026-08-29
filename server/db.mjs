@@ -44,7 +44,9 @@ export function openDb() {
       tags            TEXT,
       classified_at   TEXT,
       reviewed        INTEGER DEFAULT 0,
-      last_reviewed   TEXT
+      last_reviewed   TEXT,
+      timeliness      INTEGER,
+      breadth         INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_notes_category ON notes(category);
     CREATE INDEX IF NOT EXISTS idx_notes_type ON notes(type);
@@ -59,6 +61,8 @@ export function openDb() {
   if (!cols.includes('desc')) db.exec('ALTER TABLE notes ADD COLUMN desc TEXT');
   if (!cols.includes('reviewed')) db.exec('ALTER TABLE notes ADD COLUMN reviewed INTEGER DEFAULT 0');
   if (!cols.includes('last_reviewed')) db.exec('ALTER TABLE notes ADD COLUMN last_reviewed TEXT');
+  if (!cols.includes('timeliness')) db.exec('ALTER TABLE notes ADD COLUMN timeliness INTEGER');
+  if (!cols.includes('breadth')) db.exec('ALTER TABLE notes ADD COLUMN breadth INTEGER');
   if (!cols.includes('is_collected')) {
     db.exec('ALTER TABLE notes ADD COLUMN is_collected INTEGER DEFAULT 0');
     db.exec("UPDATE notes SET is_collected = 1 WHERE source = 'collect'");
