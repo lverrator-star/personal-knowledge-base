@@ -1,0 +1,13 @@
+{
+  "name": "personal-knowledge-base",
+  "version": "1.0.0",
+  "description": "把小红书/知乎的收藏夹整理成可检索、自动分类的个人知识库",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server/server.mjs",
+    "ingest": "node server/ingest.mjs",
+    "ingest:zhihu": "node server/ingest-zhihu.mjs",
+    "classify": "node server/classify.mjs"
+  }
+}
