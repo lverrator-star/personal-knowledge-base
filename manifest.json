@@ -1,0 +1,13 @@
+{
+  "name": "个人知识库",
+  "short_name": "知识库",
+  "description": "多平台社交收藏夹整理成可检索、自动分类的个人知识库",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f8",
+  "theme_color": "#ff2442",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

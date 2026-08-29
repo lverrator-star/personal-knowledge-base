@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>个人知识库</title>
+  <meta name="theme-color" content="#ff2442" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="知识库" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">个人知识库</span>
+      <span class="sub">多平台收藏 · 自动分类整理</span>
+    </div>
+    <div class="search">
+      <input id="search" type="text" placeholder="搜索标题 / 标签 / 作者 / 摘要…" autocomplete="off" />
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-view="browse">📄 浏览</button>
+      <button class="tab-btn" data-view="dashboard">📊 仪表盘</button>
+      <button class="tab-btn" data-view="graph">🕸️ 图谱</button>
+      <button class="tab-btn" data-view="review">📖 回顾</button>
+      <button class="tab-btn" data-view="tags">🏷️ 标签</button>
+      <button class="tab-btn" data-view="settings">⚙️ 设置</button>
+    </nav>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div id="dashboard" class="dashboard" hidden>
+    <div class="dash-grid">
+      <div class="widget span-2" id="w-total"></div>
+      <div class="widget span-2" id="w-classified"></div>
+      <div class="widget span-2" id="w-ring"></div>
+      <div class="widget span-3" id="w-platform"></div>
+      <div class="widget span-3" id="w-categories"></div>
+      <div class="widget span-3" id="w-subcats"></div>
+      <div class="widget span-3" id="w-authors"></div>
+      <div class="widget span-6" id="w-review"></div>
+      <div class="widget span-6" id="w-mobile"></div>
+    </div>
+  </div>
+
+  <div id="graph-view" class="graph-view" hidden>
+    <div class="graph-toolbar">
+      <span class="graph-hint" id="graph-hint">分类图谱 · 节点大小=数量 · 连线=共享标签 · 拖动节点 · 悬停连线看共享标签 · 点击跳转分类</span>
+      <button class="btn" id="graph-cat-btn" hidden>← 返回分类图谱</button>
+      <span class="graph-spacer"></span>
+      <button class="btn" id="graph-zoom-out" title="缩小">−</button>
+      <button class="btn" id="graph-zoom-in" title="放大">+</button>
+      <button class="btn" id="graph-zoom-reset" title="重置视图">⤢</button>
+    </div>
+    <svg id="graph-svg"></svg>
+  </div>
+
+  <div id="review-view" class="review-view" hidden></div>
+
+  <div id="tags-view" class="tags-view" hidden>
+    <div class="tags-head">
+      <span class="tags-title">🏷️ 标签云</span>
+      <span class="tags-sub">点标签筛选笔记 · 字号越大越常出现</span>
+    </div>
+    <div class="tags-cloud" id="tags-cloud"></div>
+  </div>
+
+  <div id="settings-view" class="settings-view" hidden></div>
+
+  <div class="layout" id="layout">
+    <aside class="sidebar">
+      <div class="side-block">
+        <div class="side-title">平台</div>
+        <ul class="type-list" id="app-list"></ul>
+      </div>
+      <div class="side-block">
+        <div class="side-title">分类</div>
+        <ul id="cat-list" class="cat-list"></ul>
+      </div>
+      <div class="side-block" id="type-block">
+        <div class="side-title">类型</div>
+        <ul class="type-list" id="type-list"></ul>
+      </div>
+      <div class="side-block" id="source-block">
+        <div class="side-title">来源</div>
+        <ul class="type-list" id="source-list"></ul>
+      </div>
+      <div class="side-block" id="folder-block" hidden>
+        <div class="side-title">收藏夹</div>
+        <ul class="type-list" id="folder-list"></ul>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="toolbar">
+        <span id="toolbar-count">加载中…</span>
+        <span class="controls">
+          <select id="sort" title="排序">
+            <option value="time">最近收藏</option>
+            <option value="liked">点赞最多</option>
+          </select>
+          <button class="btn" id="export-md">导出 Markdown</button>
+          <button class="btn" id="export-json">导出 JSON</button>
+        </span>
+      </div>
+      <div id="filter-bar" class="filter-bar" hidden></div>
+      <div id="grid" class="grid"></div>
+      <div id="empty" class="empty" hidden>没有匹配的笔记</div>
+    </main>
+  </div>
+
+  <div id="detail" class="detail" hidden>
+    <div class="detail-card" id="detail-card"></div>
+  </div>
+
+  <script src="./data.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
