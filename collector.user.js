@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         小红书知识库采集器
 // @namespace    local.xhs-kb
-// @version      0.4
-// @description  拦截小红书笔记列表接口（收藏/点赞），自动滚动翻页，去重导出 JSON（进度持久化，刷新不丢）
+// @version      0.5
+// @description  拦截小红书笔记列表接口（收藏/点赞），支持收藏夹子文件夹识别，自动滚动翻页，去重导出 JSON
 // @match        https://www.xiaohongshu.com/*
 // @match        https://edith.xiaohongshu.com/*
 // @grant        none
@@ -12,12 +12,13 @@
 (function () {
   'use strict';
 
-  const STORE_KEY = 'xhs_collector_v1';
+  const STORE_KEY = 'xhs_collector_v2';
   const seen = new Map();             // note_id -> normalized note
   const interceptedUrls = new Set();  // 命中的请求 URL
+  const boards = new Map();           // 收藏夹 id -> name
   let running = false;
 
-  function normalizeNote(n, source) {
+  function normalizeNote(n, source, folder) {
     const raw = (n && n.note && typeof n.note === 'object') ? n.note : n;
     if (!raw || !raw.note_id) return null;
     const cover = raw.cover || {};
@@ -41,6 +42,7 @@
       liked_count: inter.liked_count != null ? String(inter.liked_count) : '',
       liked: !!inter.liked,
       source,
+      folder: folder || '',
       note_url: raw.xsec_token
         ? `https://www.xiaohongshu.com/explore/${raw.note_id}?xsec_token=${raw.xsec_token}`
         : `https://www.xiaohongshu.com/explore/${raw.note_id}`,
@@ -51,6 +53,32 @@
     if (url.includes('/like')) return 'liked';   // 点赞接口是 /note/like/page（单数 like）
     if (url.includes('/collect')) return 'collect';
     return 'unknown';
+  }
+
+  // 识别收藏夹列表（id -> name）
+  function extractBoards(url, data) {
+    if (!data || data.code !== 0 || !data.data) return;
+    let list = null;
+    if (Array.isArray(data.data)) list = data.data;
+    else if (Array.isArray(data.data.collects)) list = data.data.collects;
+    else if (Array.isArray(data.data.albums)) list = data.data.albums;
+    else if (Array.isArray(data.data.list)) list = data.data.list;
+    if (!list) return;
+    for (const b of list) {
+      if (b && b.id && (b.name || b.title)) {
+        boards.set(String(b.id), b.name || b.title);
+      }
+    }
+  }
+
+  // 从笔记列表 URL 里取收藏夹 id
+  function extractBoardId(url) {
+    try {
+      const q = url.split('?')[1];
+      if (!q) return '';
+      const params = new URLSearchParams(q);
+      return params.get('collect_id') || params.get('album_id') || params.get('collection_id') || params.get('cid') || '';
+    } catch { return ''; }
   }
 
   function findNotesArray(data) {
@@ -99,15 +127,21 @@
     if (typeof url !== 'string') return;
     let data;
     try { data = typeof bodyText === 'string' ? JSON.parse(bodyText) : bodyText; } catch { return; }
+
+    // 先识别收藏夹列表（如有子文件夹）
+    extractBoards(url, data);
+
     const notes = findNotesArray(data);
     if (!notes) return;
 
     interceptedUrls.add(url);
     const source = detectSource(url);
+    const boardId = extractBoardId(url);
+    const folder = boardId ? (boards.get(boardId) || '') : '';
     let added = false;
     for (const n of notes) {
       if (!n) continue;
-      const norm = normalizeNote(n, source);
+      const norm = normalizeNote(n, source, folder);
       if (norm && !seen.has(norm.note_id)) { seen.set(norm.note_id, norm); added = true; }
     }
     if (added) saveState();
@@ -210,7 +244,7 @@
       </div>
       <button id="__xhs_export" style="padding:7px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer">导出 JSON</button>
       <button id="__xhs_clear" style="padding:5px;border:none;background:none;color:#999;cursor:pointer;font-size:11px">清空已采集</button>
-      <div style="font-size:11px;color:#999">进度自动保存，页面刷新不丢；清空后重新开始</div>
+      <div style="font-size:11px;color:#999">有收藏夹？逐个点进去滚动，脚本自动标注所属收藏夹；进度自动保存，刷新不丢</div>
     `;
     document.documentElement.appendChild(p);
     window.__panel = p;

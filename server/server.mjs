@@ -68,7 +68,10 @@ function getStats() {
   const liked = db.prepare('SELECT COUNT(*) c FROM notes WHERE is_liked=1').get().c;
   const appRows = db.prepare('SELECT app, COUNT(*) c FROM notes GROUP BY app').all();
   const folderRows = db.prepare(
-    "SELECT folder, COUNT(*) c FROM notes WHERE app='zhihu' AND folder IS NOT NULL GROUP BY folder ORDER BY c DESC"
+    "SELECT app, folder, COUNT(*) c FROM notes WHERE folder IS NOT NULL AND folder != '' GROUP BY app, folder ORDER BY c DESC"
+  ).all();
+  const authorRows = db.prepare(
+    "SELECT author_name, COUNT(*) c FROM notes WHERE author_name IS NOT NULL AND author_name != '' GROUP BY author_name ORDER BY c DESC LIMIT 8"
   ).all();
   return {
     total,
@@ -77,6 +80,7 @@ function getStats() {
     liked,
     apps: Object.fromEntries(appRows.map(r => [r.app, r.c])),
     folders: folderRows,
+    authors: authorRows,
     types: Object.fromEntries(typeRows.map(r => [r.type, r.c])),
     categories: catRows,
     subcategories: subRows,

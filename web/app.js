@@ -74,7 +74,7 @@ async function loadSidebar() {
 
   document.getElementById('type-block').hidden = !(isXhs || isAll);
   document.getElementById('source-block').hidden = !(isXhs || isAll);
-  document.getElementById('folder-block').hidden = !(isZhihu);
+  document.getElementById('folder-block').hidden = !(isXhs || isZhihu);
 
   document.getElementById('type-list').innerHTML = [
     ['', '全部'],
@@ -91,9 +91,11 @@ async function loadSidebar() {
     return `<li data-source="${v}" class="${state.source === v ? 'active' : ''}"><span>${label}</span><span class="count">${c}</span></li>`;
   }).join('');
 
+  const appFolders = (stats.folders || []).filter(f => !state.app || f.app === state.app);
+  const appTotal = state.app ? (stats.apps?.[state.app] ?? 0) : stats.total;
   document.getElementById('folder-list').innerHTML = [
-    `<li data-folder="" class="${state.folder === '' ? 'active' : ''}"><span>全部</span><span class="count">${stats.apps?.zhihu ?? 0}</span></li>`,
-    ...(stats.folders || []).map(f => `<li data-folder="${esc(f.folder)}" class="${state.folder === f.folder ? 'active' : ''}"><span>${esc(f.folder)}</span><span class="count">${f.c}</span></li>`),
+    `<li data-folder="" class="${state.folder === '' ? 'active' : ''}"><span>全部</span><span class="count">${appTotal}</span></li>`,
+    ...appFolders.map(f => `<li data-folder="${esc(f.folder)}" class="${state.folder === f.folder ? 'active' : ''}"><span>${esc(f.folder)}</span><span class="count">${f.c}</span></li>`),
   ].join('');
 }
 
@@ -154,6 +156,7 @@ function renderXhsCard(n) {
       <div class="meta">
         <img src="${https(n.author_avatar)}" onerror="this.style.display='none'" alt="" />
         <span class="name">${esc(n.author_name)}</span>
+        ${n.folder ? `<span class="folder-chip">${esc(n.folder)}</span>` : ''}
         <span>${esc(n.liked_count)}</span>
       </div>
     </div>
@@ -303,17 +306,64 @@ document.getElementById('dash-btn').addEventListener('click', () => {
   if (view === 'dashboard') showBrowse(); else showDashboard();
 });
 
+function barsHtml(list, kind) {
+  const max = list[0]?.c || 1;
+  return list.map(item => {
+    const label = kind === 'sub' ? `${item.category}·${item.subcategory}` : item.category;
+    const attrs = kind === 'sub'
+      ? `data-cat="${esc(item.category)}" data-sub="${esc(item.subcategory)}"`
+      : `data-cat="${esc(item.category)}"`;
+    return `
+      <div class="hbar-row" ${attrs}>
+        <span class="hbar-label">${esc(label)}</span>
+        <div class="hbar-track"><div class="hbar-fill" style="width:${(item.c / max * 100).toFixed(1)}%"></div></div>
+        <span class="hbar-val">${item.c}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadDashboard() {
   const stats = await api('/api/stats');
   const review = await api('/api/review?n=8');
 
-  // 平台分布（横向堆叠条）
+  // 总笔记
+  document.getElementById('w-total').innerHTML = `
+    <div class="widget-label">总笔记</div>
+    <div class="widget-value">${stats.total}</div>
+    <div class="widget-sub">小红书 ${stats.apps?.xhs ?? 0} · 知乎 ${stats.apps?.zhihu ?? 0}</div>
+  `;
+
+  // 已分类
+  const clsPct = stats.total ? Math.round(stats.classified / stats.total * 100) : 0;
+  document.getElementById('w-classified').innerHTML = `
+    <div class="widget-label">已分类</div>
+    <div class="widget-value">${stats.classified}</div>
+    <div class="widget-sub">覆盖率 ${clsPct}%</div>
+  `;
+
+  // 回顾进度环
+  const ringPct = review.total ? Math.round(review.reviewed / review.total * 100) : 0;
+  const C = 2 * Math.PI * 50;
+  document.getElementById('w-ring').innerHTML = `
+    <div class="widget-label">回顾进度</div>
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120">
+        <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
+        <circle class="ring-fg" cx="60" cy="60" r="50" stroke-dasharray="${(C * ringPct / 100).toFixed(1)} ${C.toFixed(1)}"></circle>
+      </svg>
+      <div class="ring-center"><span class="pct">${ringPct}%</span><span class="lbl">已回顾</span></div>
+    </div>
+    <div class="widget-sub">${review.reviewed} / ${review.total} · 剩 ${review.unreviewed}</div>
+  `;
+
+  // 平台分布
   const xhs = stats.apps?.xhs ?? 0;
   const zhihu = stats.apps?.zhihu ?? 0;
   const total = xhs + zhihu || 1;
   const xhsPct = (xhs / total * 100).toFixed(1);
-  document.getElementById('dash-platform').innerHTML = `
-    <div class="dash-title">平台分布</div>
+  document.getElementById('w-platform').innerHTML = `
+    <div class="widget-label">平台分布</div>
     <div class="stacked">
       <div class="stack-seg" style="width:${xhsPct}%;background:#2a78d6">小红书 ${xhs}</div>
       <div class="stack-seg" style="width:${(100 - Number(xhsPct)).toFixed(1)}%;background:#eb6834">知乎 ${zhihu}</div>
@@ -322,41 +372,37 @@ async function loadDashboard() {
       <span class="legend-item"><span class="dot" style="background:#2a78d6"></span>小红书 ${xhs}</span>
       <span class="legend-item"><span class="dot" style="background:#eb6834"></span>知乎 ${zhihu}</span>
     </div>
+    <div class="widget-sub">图文 ${stats.types.normal || 0} · 视频 ${stats.types.video || 0} · 回答 ${stats.types.answer || 0} · 文章 ${stats.types.article || 0}</div>
   `;
 
-  // 分类分布 Top 12（单一蓝色横条）
-  const cats = (stats.categories || []).slice(0, 12);
-  const maxCat = cats[0]?.c || 1;
-  document.getElementById('dash-categories').innerHTML = `
-    <div class="dash-title">分类分布 Top 12</div>
-    ${cats.map(c => `
-      <div class="hbar-row" data-cat="${esc(c.category)}">
-        <span class="hbar-label">${esc(c.category)}</span>
-        <div class="hbar-track"><div class="hbar-fill" style="width:${(c.c / maxCat * 100).toFixed(1)}%"></div></div>
-        <span class="hbar-val">${c.c}</span>
-      </div>
-    `).join('')}
+  // 分类 Top 8
+  document.getElementById('w-categories').innerHTML = `
+    <div class="widget-label">分类 Top 8</div>
+    ${barsHtml((stats.categories || []).slice(0, 8), 'cat')}
   `;
 
-  // 小类 Top 10
-  const subs = (stats.subcategories || []).slice(0, 10);
-  const maxSub = subs[0]?.c || 1;
-  document.getElementById('dash-subcats').innerHTML = `
-    <div class="dash-title">小类 Top 10</div>
-    ${subs.map(s => `
-      <div class="hbar-row" data-cat="${esc(s.category)}" data-sub="${esc(s.subcategory)}">
-        <span class="hbar-label">${esc(s.category)}·${esc(s.subcategory)}</span>
-        <div class="hbar-track"><div class="hbar-fill" style="width:${(s.c / maxSub * 100).toFixed(1)}%"></div></div>
-        <span class="hbar-val">${s.c}</span>
+  // 小类 Top 8
+  document.getElementById('w-subcats').innerHTML = `
+    <div class="widget-label">小类 Top 8</div>
+    ${barsHtml((stats.subcategories || []).slice(0, 8), 'sub')}
+  `;
+
+  // 常看的作者
+  document.getElementById('w-authors').innerHTML = `
+    <div class="widget-label">常看的作者</div>
+    ${(stats.authors || []).map(a => `
+      <div class="author-row">
+        <span class="author-name">${esc(a.author_name)}</span>
+        <span class="author-count">${a.c}</span>
       </div>
     `).join('')}
   `;
 
   // 今日回顾
-  document.getElementById('dash-review').innerHTML = `
-    <div class="dash-title">
+  document.getElementById('w-review').innerHTML = `
+    <div class="widget-label" style="display:flex;align-items:center">
       今日回顾
-      <span class="review-progress">已回顾 ${review.reviewed} / ${review.total}（剩余 ${review.unreviewed}）</span>
+      <span class="review-progress">已回顾 ${review.reviewed} / ${review.total}</span>
       <button id="review-reset" class="mini-btn">重新开始一轮</button>
     </div>
     <div class="review-grid">
@@ -379,24 +425,18 @@ async function loadDashboard() {
     await fetch('/api/review/reset', { method: 'POST' });
     loadDashboard();
   });
-  document.querySelectorAll('#dash-review .review-done').forEach(btn => {
+  document.querySelectorAll('#w-review .review-done').forEach(btn => {
     btn.addEventListener('click', async e => {
       const id = e.target.closest('.review-card').dataset.id;
       await fetch('/api/review/' + encodeURIComponent(id), { method: 'POST' });
       loadDashboard();
     });
   });
-  document.querySelectorAll('#dash-categories [data-cat]').forEach(el => {
-    el.addEventListener('click', () => {
-      state.category = el.dataset.cat; state.subcategory = '';
-      showBrowse(); loadSidebar(); loadNotes();
-    });
+  document.querySelectorAll('#w-categories [data-cat]').forEach(el => {
+    el.addEventListener('click', () => { state.category = el.dataset.cat; state.subcategory = ''; showBrowse(); loadSidebar(); loadNotes(); });
   });
-  document.querySelectorAll('#dash-subcats [data-sub]').forEach(el => {
-    el.addEventListener('click', () => {
-      state.category = el.dataset.cat; state.subcategory = el.dataset.sub;
-      showBrowse(); loadSidebar(); loadNotes();
-    });
+  document.querySelectorAll('#w-subcats [data-sub]').forEach(el => {
+    el.addEventListener('click', () => { state.category = el.dataset.cat; state.subcategory = el.dataset.sub; showBrowse(); loadSidebar(); loadNotes(); });
   });
 }
 

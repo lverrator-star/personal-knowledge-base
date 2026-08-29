@@ -33,14 +33,15 @@ const upsert = db.prepare(`
   INSERT INTO notes (
     note_id, title, type, xsec_token, cover_url, cover_urls,
     author_id, author_name, author_avatar, author_xsec_token,
-    liked_count, liked, liked_num, source, is_collected, is_liked, note_url, collected_at
-  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    liked_count, liked, liked_num, source, folder, is_collected, is_liked, note_url, collected_at
+  ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   ON CONFLICT(note_id) DO UPDATE SET
     title=excluded.title, type=excluded.type, cover_url=excluded.cover_url,
     cover_urls=excluded.cover_urls, author_id=excluded.author_id,
     author_name=excluded.author_name, author_avatar=excluded.author_avatar,
     author_xsec_token=excluded.author_xsec_token, liked_count=excluded.liked_count,
     liked=MAX(liked, excluded.liked), liked_num=excluded.liked_num,
+    folder=excluded.folder,
     is_collected=MAX(is_collected, excluded.is_collected),
     is_liked=MAX(is_liked, excluded.is_liked),
     note_url=excluded.note_url
@@ -69,6 +70,7 @@ for (const note of notes) {
     note.liked ? 1 : 0,
     parseLikedNum(note.liked_count),
     src,
+    note.folder ?? '',
     isCollect ? 1 : 0,
     isLiked ? 1 : 0,
     note.note_url ?? '',
