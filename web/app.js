@@ -43,6 +43,10 @@ async function api(path) {
   return r.json();
 }
 
+// 静态预览（GitHub Pages）标志：隐藏「本地文件」相关的入口
+let isPreview = false;
+api('/api/info').then(i => { isPreview = !!i.preview; }).catch(() => {});
+
 function buildQuery() {
   const p = new URLSearchParams();
   if (state.app) p.set('app', state.app);
@@ -1016,3 +1020,7 @@ async function loadSettings() {
 // ---------- 启动 ----------
 loadSidebar();
 loadNotes();
+
+// 深链支持：/#review /#tags /#settings /#dashboard 直接进对应页
+const initialHash = location.hash.slice(1);
+if (['review', 'tags', 'settings', 'dashboard'].includes(initialHash)) setView(initialHash);

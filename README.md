@@ -15,6 +15,7 @@
 - 🕸️ **知识图谱**：分类关联图谱 + 单笔记关系图谱（共享标签连线、缩放平移、拖拽）
 - 🏷️ **标签云**：按标签浏览全部收藏，点标签即筛选
 - 📖 **防吃灰**：独立「回顾」页随机推荐旧收藏，一键标记已回顾（支持快捷键 ←→），循环复习
+- 📬 **每日推送**：定时把回顾清单推送到微信 / QQ（Server酱 / PushPlus / QQ机器人）
 - 📤 **导出**：Markdown / JSON 一键导出备份
 - 📱 **移动端**：PWA——手机浏览器「添加到主屏幕」即得 APP 图标
 - 🌍 **静态预览**：一键生成纯静态站点（server/export-static.mjs），可托管 GitHub Pages 分享给别人看
@@ -110,6 +111,38 @@ node server/classify.mjs             # 自动分类（可断点续跑）
 1. 写一个采集脚本（拦截该平台的收藏/列表接口，导出统一 JSON）；
 2. 加一个 `ingest-xxx.mjs` 入库脚本（映射到 `app` 字段）；
 3. 前端「平台」列表里加一项。
+
+## 📬 每日回顾提醒（推送到微信 / QQ）
+
+配置 `config.json` 的 `push` 字段，每天定时把「未回顾笔记」清单推到手机：
+
+| 渠道 | channel 值 | token 获取方式 |
+|---|---|---|
+| **Server酱**（微信服务号） | `serverchan` | [sct.ftqq.com](https://sct.ftqq.com) 微信扫码登录 → 复制 SendKey |
+| **PushPlus**（微信服务号） | `pushplus` | [pushplus.plus](https://www.pushplus.plus) 微信扫码登录 → 复制 token |
+| **QQ 官方机器人**（进阶） | `qqbot` | [bot.qq.com](https://bot.qq.com) 注册开发者、创建机器人，token 填 `"appId\|clientSecret\|群openid"` |
+
+```json
+"push": {
+  "channel": "serverchan",
+  "token": "SCTxxxxxx",
+  "time": "21:00",
+  "count": 3,
+  "web": "http://192.168.1.28:8787"
+}
+```
+
+Windows 创建每日计划任务（每天 21:00，开机错过自动补发）：
+
+```powershell
+$dt = [datetime]::ParseExact('21:00', 'HH:mm', $null)
+Register-ScheduledTask -TaskName '个人知识库每日回顾' `
+  -Action (New-ScheduledTaskAction -Execute 'C:\Program Files\nodejs\node.exe' -Argument '"<项目路径>\server\remind.mjs"' -WorkingDirectory '<项目路径>') `
+  -Trigger (New-ScheduledTaskTrigger -Daily -At $dt) `
+  -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable) -Force
+```
+
+验证：`node server/remind.mjs --test`（未配置 token 时只打印消息预览，不发送）。
 
 ## 🌍 静态预览（GitHub Pages）
 
