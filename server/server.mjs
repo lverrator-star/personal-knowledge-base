@@ -6,6 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.mjs';
+import { FILES_DIR, FILE_MIME, isInlineExt, registerLocalFile } from './files.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDir = path.join(__dirname, '..', 'web');
@@ -52,6 +53,29 @@ function sendDownload(res, filename, contentType, body) {
     'Access-Control-Allow-Origin': '*',
   });
   res.end(body);
+}
+
+function readBody(req, limit = 64 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on('data', c => {
+      size += c.length;
+      if (size > limit) { reject(new Error('请求体过大（上限 64MB）')); req.destroy(); return; }
+      chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+
+// 上传文件名消毒：去路径、去非法字符
+function sanitizeName(name) {
+  name = path.basename(String(name || ''));
+  name = name.replace(/[\\/:*?"<>|]/g, '_').trim();
+  if (!name || name === '.' || name === '..') return null;
+  if (Buffer.byteLength(name, 'utf8') > 200) name = name.slice(0, 80) + path.extname(name);
+  return name;
 }
 
 function parseJsonArray(s, fallback = []) {
@@ -127,8 +151,8 @@ function listNotes(params) {
   if (tag) { where.push('tags LIKE ?'); args.push(`%"${tag.replace(/"/g, '')}"%`); }
   if (q) {
     const like = `%${q}%`;
-    where.push('(title LIKE ? OR summary LIKE ? OR tags LIKE ? OR subcategory LIKE ? OR author_name LIKE ?)');
-    args.push(like, like, like, like, like);
+    where.push('(title LIKE ? OR summary LIKE ? OR tags LIKE ? OR subcategory LIKE ? OR author_name LIKE ? OR desc LIKE ?)');
+    args.push(like, like, like, like, like, like);
   }
 
   const sort = params.get('sort');
@@ -270,7 +294,8 @@ function buildMarkdown(notes) {
       if (n.tags && n.tags.length) meta.push(`标签：${n.tags.join('、')}`);
       lines.push(meta.join(' ｜ '));
       if (n.summary) lines.push(`摘要：${n.summary}`);
-      if (n.note_url) lines.push(`原文：${n.note_url}`);
+      if (n.app === 'local') lines.push(`本地文件：data/files/${n.title}`);
+      else if (n.note_url) lines.push(`原文：${n.note_url}`);
       if (n.cover_url) lines.push(`封面：${n.cover_url}`);
       lines.push('');
     }
@@ -278,11 +303,33 @@ function buildMarkdown(notes) {
   return lines.join('\n');
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const pathname = decodeURIComponent(url.pathname);
 
   try {
+    if (pathname === '/api/upload' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req)).toString('utf8'));
+      const name = sanitizeName(body.name);
+      if (!name) return send(res, 400, { error: '文件名不合法' });
+      const buf = Buffer.from(body.data || '', 'base64');
+      if (!buf.length) return send(res, 400, { error: '文件内容为空' });
+      const note = registerLocalFile(db, name, buf);
+      return send(res, 200, { ok: true, note });
+    }
+    if (pathname.startsWith('/files/')) {
+      const rel = decodeURIComponent(pathname.slice('/files/'.length));
+      const full = path.resolve(FILES_DIR, rel);
+      if (!full.startsWith(FILES_DIR + path.sep)) return send(res, 404, { error: 'not found' });
+      if (!existsSync(full) || !statSync(full).isFile()) return send(res, 404, { error: 'not found' });
+      const ext = path.extname(full).toLowerCase();
+      res.writeHead(200, {
+        'Content-Type': FILE_MIME[ext] || 'application/octet-stream',
+        'Content-Disposition': isInlineExt(ext) ? 'inline' : `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(full))}`,
+        'Access-Control-Allow-Origin': '*',
+      });
+      return res.end(readFileSync(full));
+    }
     if (pathname === '/api/stats') return send(res, 200, getStats());
     if (pathname === '/api/graph') return send(res, 200, getGraph());
     if (pathname === '/api/info') {
