@@ -10,7 +10,7 @@
 //     "token": "SCTxxxxxx",      // serverchan: SendKey；pushplus: token；qqbot: "appId|clientSecret|群openid"
 //     "time": "21:00",           // 提醒时间（由计划任务执行，这里仅作记录）
 //     "count": 3,                // 每次推几条
-//     "web": "http://192.168.1.28:8787"  // 知识库地址，用于消息里的「打开回顾」链接（可选）
+//     "web": ["http://192.168.1.28:8787", "http://100.x.y.z:8787"]  // 知识库地址（可多个：局域网 + Tailscale 等）
 //   }
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
@@ -69,8 +69,13 @@ function buildMessage(notes) {
     lines.push(`${i + 1}. ${cat}${n.title || '（无标题）'}`);
     if (n.note_url && n.note_url.startsWith('http')) lines.push(`   ${n.note_url}`);
   });
-  if (push.web) lines.push('', `[打开知识库开始回顾 →](${push.web}/#review)`);
-  else lines.push('', `打开电脑上的「个人知识库」→「回顾」页开始回顾`);
+  const webs = Array.isArray(push.web) ? push.web : (push.web ? [push.web] : []);
+  if (webs.length) {
+    lines.push('', '**开始回顾：**');
+    webs.forEach((w, i) => lines.push(`- ${webs.length > 1 ? (i === 0 ? '家里 WiFi：' : '出门在外：') : ''}[打开知识库 →](${w}/#review)`));
+  } else {
+    lines.push('', `打开电脑上的「个人知识库」→「回顾」页开始回顾`);
+  }
 
   return { title: `📖 知识库每日回顾（${monthDay}）`, md: lines.join('\n') };
 }
