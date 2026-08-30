@@ -13,6 +13,9 @@ const outDir = path.join(__dirname, '..', 'preview');
 
 const db = openDb();
 
+// 本地文件不进入公开预览：temp view 遮蔽 notes 表，下面所有查询自动过滤
+db.exec("CREATE TEMP VIEW notes AS SELECT * FROM main.notes WHERE app IS NOT 'local'");
+
 function parseJsonArray(s, fallback = []) {
   if (!s) return fallback;
   try { return JSON.parse(s); } catch { return fallback; }
