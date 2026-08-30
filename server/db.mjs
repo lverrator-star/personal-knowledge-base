@@ -63,6 +63,7 @@ export function openDb() {
   if (!cols.includes('last_reviewed')) db.exec('ALTER TABLE notes ADD COLUMN last_reviewed TEXT');
   if (!cols.includes('timeliness')) db.exec('ALTER TABLE notes ADD COLUMN timeliness INTEGER');
   if (!cols.includes('breadth')) db.exec('ALTER TABLE notes ADD COLUMN breadth INTEGER');
+  if (!cols.includes('file_size')) db.exec('ALTER TABLE notes ADD COLUMN file_size INTEGER');
   if (!cols.includes('is_collected')) {
     db.exec('ALTER TABLE notes ADD COLUMN is_collected INTEGER DEFAULT 0');
     db.exec("UPDATE notes SET is_collected = 1 WHERE source = 'collect'");
