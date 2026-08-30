@@ -44,7 +44,10 @@ function userPrompt(note) {
   const typeName = TYPE_LABEL[note.type] || note.type || '未知';
   let text = `标题：${note.title || '（无标题）'}\n类型：${typeName}`;
   if (note.folder) text += `\n所属收藏夹：${note.folder}`;
-  if (note.desc) text += `\n内容摘要：${String(note.desc).slice(0, 300)}`;
+  if (note.desc) {
+    const maxDesc = note.app === 'local' ? 800 : 300; // 本地文件给更长的正文
+    text += `\n内容摘要：${String(note.desc).slice(0, maxDesc)}`;
+  }
   return text;
 }
 
@@ -109,8 +112,8 @@ async function main() {
 
   const db = openDb();
   const sql = force
-    ? 'SELECT note_id, title, type, desc, folder FROM notes ORDER BY rowid'
-    : 'SELECT note_id, title, type, desc, folder FROM notes WHERE category IS NULL ORDER BY rowid';
+    ? 'SELECT note_id, title, type, desc, folder, app FROM notes ORDER BY rowid'
+    : 'SELECT note_id, title, type, desc, folder, app FROM notes WHERE category IS NULL ORDER BY rowid';
   const todos = db.prepare(sql).all().slice(0, limit);
 
   console.log(`待分类: ${todos.length} 条（${force ? '强制重分类' : '仅未分类'}，模型 ${MODEL}，并发 ${concurrency}）`);
